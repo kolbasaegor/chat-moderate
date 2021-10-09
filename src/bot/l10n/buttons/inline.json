@@ -1,0 +1,18 @@
+{
+  "btn_choose_chat": {
+    "en": "{is_chosen} {title}",
+    "ru": "{is_chosen} {title}"
+  },
+  "btn_chats_prev": {
+    "en": "< prev. page",
+    "ru": "< назад"
+  },
+  "btn_chats_next": {
+    "en": "next page >",
+    "ru": "вперед >"
+  },
+  "btn_main_menu": {
+    "en": "Main menu",
+    "ru": "Главное меню"
+  }
+}

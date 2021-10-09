@@ -1,0 +1,10 @@
+{
+  "request_chats_access_pick_chats_request": {
+    "en": "Pick the chats you would like to request access to",
+    "ru": "Выбери чаты, доступ в которые ты хотел бы получить"
+  },
+  "request_chats_access_total_chats": {
+    "en": "Total chats",
+    "ru": "Всего чатов"
+  }
+}

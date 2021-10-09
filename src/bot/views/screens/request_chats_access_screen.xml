@@ -1,0 +1,5 @@
+<screen id="request_chats_access_screen">
+    {request_chats_access_pick_chats_request}
+
+    {request_chats_access_total_chats}: [% :total_chats %]
+</screen>

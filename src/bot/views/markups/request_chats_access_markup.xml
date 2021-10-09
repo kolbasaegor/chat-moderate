@@ -1,0 +1,12 @@
+<inline-markup id="request_chats_access_markup">
+    <column collection="available_chats">
+        <button id="btn_choose_chat" args="chat_id"/>
+    </column>
+    <row>
+        <button id="btn_chats_prev"/>
+        <button id="btn_chats_next"/>
+    </row>
+    <row>
+        <button id="btn_main_menu"/>
+    </row>
+</inline-markup>

@@ -1,0 +1,3 @@
+class UnexpectedObjectType(Exception):
+    pass
+

@@ -9,6 +9,7 @@ from botforge.forms import Forms
 from botforge.l10n import L10n
 from botforge.module_manager import ModuleManager
 from botforge.session import SessionManager
+from botforge.users_queue import UserQManager
 from botforge.trees import Trees
 from botforge.utils import import_module, get_directories_names, escape_html
 from botforge.view_manager import ViewManager
@@ -118,6 +119,7 @@ class Bot(object):
         self.l10n = L10n(modules=self.modules)
         self.view_manager = ViewManager(modules=self.modules, l10n=self.l10n)
         self.session_manager = SessionManager(config)
+        self.users_q_manager = UserQManager(config)
 
         self.last_update_id = 0
 
@@ -188,6 +190,7 @@ class Bot(object):
                               'start_query': self.Extract.start_query(update),
                               'view_manager': self.view_manager,
                               'catcher': self.catcher,
+                              'user_requests': self.users_q_manager
                               }
 
         argument_resolvers['session'] = self.session_manager.get_user_session(argument_resolvers['from_user_id'])
@@ -220,7 +223,6 @@ class Bot(object):
                 self.catcher.try_catch(updates_to_try, argument_resolvers)
 
                 session = argument_resolvers.get('session')
-                session['username'] = argument_resolvers.get('from_username')
 
                 if session is not None:
                     self.session_manager.update_user_session(session)

@@ -6,5 +6,9 @@
   "request_chats_access_total_chats": {
     "en": "Total chats",
     "ru": "Всего чатов"
+  },
+  "sent_message_to_concierge": {
+    "en": "The request to join the selected chats was\nsent to Concierge Service, wait for a response!",
+    "ru": "Запрос на вступление в выбранные чаты был \nотправлен в Консьерж-Сервис, ожидайте ответа!"
   }
 }

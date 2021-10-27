@@ -32,9 +32,9 @@ class SessionManager(object):
         self._sessions_collection = self._db.get_collection(SessionManager.SESSIONS_COLLECTION)
 
     @staticmethod
-    def new_session(user_id, lang, state, tree_id, state_id):
+    def new_session(user_id, lang, state, tree_id, state_id, initial_page):
         return {'user_id': str(user_id), 'lang': lang, 'state': state, 'created_at': datetime.datetime.now(),
-                'tree_id': tree_id, 'state_id': state_id}
+                'tree_id': tree_id, 'state_id': state_id, 'current_page': initial_page}
 
     def get_user_session(self, user_id):
         # TODO: introduce mutex for enabling concurrency?
@@ -57,7 +57,8 @@ class SessionManager(object):
                                                   self._config['session_manager']['default_lang'],
                                                   self._config['session_manager']['default_state'],
                                                   self._config['session_manager']['default_tree_id'],
-                                                  self._config['session_manager']['default_state_id'])
+                                                  self._config['session_manager']['default_state_id'],
+                                                  self._config['session_manager']['default_page'])
         self.update_user_session(session_dict)
 
         return session_dict

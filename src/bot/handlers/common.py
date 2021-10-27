@@ -1,77 +1,88 @@
-import copy
-
-from botforge.api.consts.telegram_bot import ParseMode
+from config import SETTINGS
 from botforge.catcher.match import Any
 from botforge.matches import Command, MarkupButtonClicked
 
-ALL_CHATS = [{'chat_id': 123, 'title': 'Test chat', 'is_chosen': True}]
+from handlers.user_handler import UserHandler as usr
+from handlers.concierge_handler import ConciergeHandler as con
+
+CONCIERGE_ID = SETTINGS['bot']['concierge_id']
 
 
 def mount(bot):
-    def render_available_chats(chosen_chats_ids):
-        available_chats_rendered = []
-
-        for chat in ALL_CHATS:
-            chat_params = copy.deepcopy(chat)
-            chat_params['is_chosen'] = '🔘' if chat['chat_id'] in chosen_chats_ids else '⚪️'
-            chat_params = {k: str(v) for k, v in chat_params.items()}
-            available_chats_rendered.append(chat_params)
-
-        return available_chats_rendered
-
     @bot.catcher.catch(
         Any(
-            Command('start'),
+            Command('start')
         )
     )
-    def catch_ping(api, view_manager, from_user_id, chat_lang, session):
-        chosen_chats_ids = session['chosen_chats_ids'] if 'chosen_chats_ids' in session else []
-        params = {'available_chats': render_available_chats(chosen_chats_ids)}
-        message_text = view_manager.get_view('request_chats_access_screen', chat_lang, screen_params={'total_chats': len(ALL_CHATS)})
-        kb = view_manager.get_view('request_chats_access_markup', chat_lang,
-                                   markup_params=params)
-
-        api.send_message(from_user_id, message_text, reply_markup=kb, parse_mode=ParseMode.html)
+    def catch_ping(api, view_manager, from_user_id, chat_lang, session, user_requests):
+        if from_user_id == CONCIERGE_ID:
+            con.catch_ping(api, view_manager, from_user_id, chat_lang, user_requests)
+        else:
+            usr.catch_ping(api, view_manager, from_user_id, chat_lang, session)
 
     @bot.catcher.catch(
         Any(
-            MarkupButtonClicked('btn_choose_chat'),
+            MarkupButtonClicked('btn_show_first_request')
+        )
+    )
+    def show_first_request(api, view_manager, from_user_id, chat_lang, user_requests, session):
+        con.show_first_request(api, view_manager, from_user_id, chat_lang, user_requests, session)
+
+    @bot.catcher.catch(
+        Any(
+            MarkupButtonClicked('btn_choose_chat')
         )
     )
     def choose_chat(api, view_manager, chat_lang, callback_query, from_user_id, session):
-        api.answer_callback_query(callback_query.id)
-
-        if callback_query is None:
-            return
-
-        params = callback_query.data.split('|')[1:]
-
-        if len(params) < 1:
-            return
-
-        message = callback_query.message
-        current_message_id = message.message_id
-
-        chat_id = int(params[0])
-
-        chosen_chats_ids = session['chosen_chats_ids'] if 'chosen_chats_ids' in session else []
-
-        if chat_id in chosen_chats_ids:
-            chosen_chats_ids.remove(chat_id)
+        if from_user_id == CONCIERGE_ID:
+            con.choose_chat(api, view_manager, chat_lang, callback_query, from_user_id, session)
         else:
-            chosen_chats_ids.append(chat_id)
+            usr.choose_chat(api, view_manager, chat_lang, callback_query, from_user_id, session)
 
-        session['chosen_chats_ids'] = chosen_chats_ids
+    @bot.catcher.catch(
+        Any(
+            MarkupButtonClicked('btn_chats_prev')
+        )
+    )
+    def prev_chats(api, view_manager, chat_lang, callback_query, from_user_id, session):
+        if from_user_id == CONCIERGE_ID:
+            con.prev_chats(api, view_manager, chat_lang, callback_query, from_user_id, session)
+        else:
+            usr.prev_chats(api, view_manager, chat_lang, callback_query, from_user_id, session)
 
-        params = {'available_chats': render_available_chats(chosen_chats_ids)}
-        message_text = view_manager.get_view('request_chats_access_screen', chat_lang,
-                                             screen_params={'total_chats': len(ALL_CHATS)})
-        kb = view_manager.get_view('request_chats_access_markup', chat_lang,
-                                   markup_params=params)
+    @bot.catcher.catch(
+        Any(
+            MarkupButtonClicked('btn_chats_next')
+        )
+    )
+    def next_chats(api, view_manager, chat_lang, callback_query, from_user_id, session):
+        if from_user_id == CONCIERGE_ID:
+            con.next_chats(api, view_manager, chat_lang, callback_query, from_user_id, session)
+        else:
+            usr.next_chats(api, view_manager, chat_lang, callback_query, from_user_id, session)
 
-        api.edit_message_text(message_text,
-                              chat_id=from_user_id,
-                              message_id=current_message_id,
-                              reply_markup=kb,
-                              parse_mode=ParseMode.html)
+    @bot.catcher.catch(
+        Any(
+            MarkupButtonClicked('btn_request_access')
+        )
+    )
+    def request_access(api, view_manager, from_user_id, from_first_name,
+                       from_last_name, chat_lang, callback_query, session, user_requests):
+        usr.request_access(api, view_manager, from_user_id, from_first_name,
+                           from_last_name, chat_lang, callback_query, session, user_requests)
 
+    @bot.catcher.catch(
+        Any(
+            MarkupButtonClicked('btn_send_response')
+        )
+    )
+    def send_response(api, view_manager, chat_lang, from_user_id, session, user_requests):
+        con.send_response(api, view_manager, chat_lang, from_user_id, session, user_requests)
+
+    @bot.catcher.catch(
+        Any(
+            MarkupButtonClicked('btn_reject_request')
+        )
+    )
+    def reject_request(api, view_manager, chat_lang, from_user_id, user_requests):
+        con.reject_request(api, view_manager, chat_lang, from_user_id, user_requests)

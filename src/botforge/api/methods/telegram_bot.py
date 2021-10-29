@@ -107,6 +107,28 @@ class TelegramBotProxy(APIProxy):
 
         return User(**result) if result is not None else None
 
+    def create_chat_invite_link(self, chat_id, expire_date, member_limit=1):
+        params = {'chat_id': chat_id,
+                  'expire_date': expire_date,
+                  'member_limit': member_limit
+                  }
+
+        result = self.request('createChatInviteLink', params=params)
+
+        return result['invite_link']
+
+    # def kick_chat_member(self, chat_id, user_id, until_date=None, revoke_messages=True):
+    #     params = {'chat_id': chat_id,
+    #               'user_id': user_id,
+    #               'revoke_messages': revoke_messages}
+    #
+    #     if until_date is not None:
+    #         params['until_date'] = until_date
+    #
+    #     result = self.request('banChatMember', params=params)
+    #
+    #     return result
+
     def send_message(self, chat_id, text, disable_web_page_preview=None, reply_to_message_id=None,
                      reply_markup=None, parse_mode=None, disable_notification=None):
         params = {'text': text, 'chat_id': str(chat_id)}

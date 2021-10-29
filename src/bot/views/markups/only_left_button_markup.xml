@@ -1,15 +1,14 @@
-<inline-markup id="concierge_chats_markup">
+<inline-markup id="only_left_button_markup">
     <column collection="available_chats">
         <button id="btn_choose_chat" args="chat_id"/>
     </column>
     <row collection="buttons">
         <button id="btn_chats_prev"/>
-        <button id="btn_chats_next"/>
     </row>
-    <row collection="response">
-        <button id="btn_send_response"/>
+    <row collection="send_request_button">
+        <button id="btn_request_access"/>
     </row>
     <row>
-        <button id="btn_reject_request"/>
+        <button id="btn_main_menu"/>
     </row>
 </inline-markup>

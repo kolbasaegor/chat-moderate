@@ -223,6 +223,7 @@ class Bot(object):
                 self.catcher.try_catch(updates_to_try, argument_resolvers)
 
                 session = argument_resolvers.get('session')
+                session['username'] = argument_resolvers.get('from_username')
 
                 if session is not None:
                     self.session_manager.update_user_session(session)
@@ -231,3 +232,4 @@ class Bot(object):
                     self.last_update_id = update.update_id
 
             sleep(0.1)
+

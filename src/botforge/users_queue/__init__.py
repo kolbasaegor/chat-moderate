@@ -5,6 +5,7 @@ import datetime
 class UserQManager(object):
     USERS_Q_COLLECTION = 'users_queue'
     IDS = 'users_ids'
+    PRIVATE_CHATS = 'private_chats'
     _mongo_connection_timeout = 5
 
     def __init__(self, config):
@@ -31,6 +32,7 @@ class UserQManager(object):
         self._db = client.get_database(config['db']['name'])
         self.users_collection = self._db.get_collection(UserQManager.USERS_Q_COLLECTION)
         self.users_ids = self._db.get_collection(UserQManager.IDS)
+        self.private_chats = self._db.get_collection(UserQManager.PRIVATE_CHATS)
 
     def new_request(self, user_id, lang, user_name, profile_pic_id, number_of_chats, chats):
         _hash = str(user_id)+str(datetime.datetime.now())
@@ -62,6 +64,36 @@ class UserQManager(object):
 
         self.users_ids.update_one({'name': 'user_ids'}, {"$set": {'number': number, 'hashes': hashes_copy}})
         self.users_collection.delete_one({'hash': _hash})
+
+    def init_private_chats(self, chats):
+        for chat in chats:
+            if self.private_chats.find_one({'chat_id': chat['chat_id']}) is None:
+                self.private_chats.insert_one({'chat_id': chat['chat_id'],
+                                               'chat_title': chat['title'],
+                                               'user_ids': []})
+
+    def add_user_id_to_private_chat(self, user_id, chat_id):
+        ids = self.private_chats.find_one({'chat_id': chat_id})['user_ids']
+        if user_id not in ids:
+            ids.append(user_id)
+
+        self.private_chats.update_one({'chat_id': chat_id}, {"$set": {'user_ids': ids}})
+
+    def remove_user_id_from_private_chat(self, user_id, chat_id):
+        ids = self.private_chats.find_one({'chat_id': chat_id})['user_ids']
+        if user_id in ids:
+            ids.remove(user_id)
+
+        self.private_chats.update_one({'chat_id': chat_id}, {"$set": {'user_ids': ids}})
+
+    def get_private_chat_user_ids(self, chat_id):
+        result = self.private_chats.find_one({'chat_id': chat_id})
+
+        if result is not None:
+            return self.private_chats.find_one({'chat_id': chat_id})['user_ids']
+        else:
+            return None
+
 
 
 

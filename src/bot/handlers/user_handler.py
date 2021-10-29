@@ -2,12 +2,12 @@ import copy
 from config import SETTINGS
 from botforge.api.consts.telegram_bot import ParseMode
 
-ALL_CHATS = [{'chat_id': 123, 'title': 'Test chat 1', 'is_chosen': False, 'link': 'vk.com'},
-             {'chat_id': 345, 'title': 'Test chat 2', 'is_chosen': False, 'link': 'yandex.ru'},
-             {'chat_id': 678, 'title': 'Test chat 3', 'is_chosen': False, 'link': 'https://t.me/joinchat/mC2rIE70yOZkMTYy'},
-             {'chat_id': 109, 'title': 'Test chat 4', 'is_chosen': False, 'link': 'link4'},
-             {'chat_id': 78, 'title': 'Test chat 5', 'is_chosen': False, 'link': 'link5'},
-             {'chat_id': 456, 'title': 'Test chat 6', 'is_chosen': False, 'link': 'https://t.me/joinchat/z8jjElL10F43NGEy'}]
+ALL_CHATS = [{'chat_id': -1001478120184, 'title': 'bot test', 'is_chosen': False, 'private': False},
+             {'chat_id': -601226818, 'title': 'test chat', 'is_chosen': False, 'private': False},
+             {'chat_id': -726698144, 'title': 'lolik 🤣', 'is_chosen': False, 'private': True},
+             {'chat_id': -767688267, 'title': 'sinus', 'is_chosen': False, 'private': False},
+             {'chat_id': -795592403, 'title': 'cosinus', 'is_chosen': False, 'private': True},
+             ]
 
 DISPLAYED_PAGES = SETTINGS['bot']['num_of_displayed_pages']
 TOKEN = SETTINGS['bot']['token']
@@ -53,15 +53,18 @@ class UserHandler:
         return available_chats_rendered
 
     @staticmethod
-    def button_params(current_page):
-        max_page_number = len(ALL_CHATS) // DISPLAYED_PAGES - 1
-        if len(ALL_CHATS) % DISPLAYED_PAGES != 0:
-            max_page_number = max_page_number + 1
-
-        return [{'prev_page': str(current_page),
-                 'total': str(max_page_number + 1)},
-                {'next_page': str(current_page + 2),
-                 'total': str(max_page_number + 1)}]
+    def button_params(current_page, max_page_number):
+        if current_page == 0:
+            return [{'next_page': str(current_page + 2),
+                     'total': str(max_page_number + 1)}]
+        elif current_page == max_page_number:
+            return [{'prev_page': str(current_page),
+                     'total': str(max_page_number + 1)}]
+        else:
+            return [{'prev_page': str(current_page),
+                     'total': str(max_page_number + 1)},
+                    {'next_page': str(current_page + 2),
+                     'total': str(max_page_number + 1)}]
 
     @staticmethod
     def send_request_button_params(len_chosen_chats):
@@ -69,29 +72,59 @@ class UserHandler:
                  'total': str(len(ALL_CHATS))}]
 
     @staticmethod
-    def kb_params(session):
-        return {'available_chats': UserHandler.render_available_chats(session['chosen_chats_ids'], session['current_page']),
-                'buttons': UserHandler.button_params(session['current_page']),
-                'send_request_button': UserHandler.send_request_button_params(len(session['chosen_chats_ids']))
-                }
+    def get_max_page_number():
+        max_page_number = len(ALL_CHATS) // DISPLAYED_PAGES - 1
+        if len(ALL_CHATS) % DISPLAYED_PAGES != 0:
+            max_page_number = max_page_number + 1
+
+        return max_page_number
+
+    @staticmethod
+    def kb_params(session, view_manager, chat_lang):
+        max_page_number = UserHandler.get_max_page_number()
+        current_page = session['current_page']
+        chosen_chats_ids = session['chosen_chats_ids']
+
+        params = {
+            'available_chats': UserHandler.render_available_chats(chosen_chats_ids,
+                                                                  current_page),
+            'buttons': UserHandler.button_params(current_page, max_page_number),
+            'send_request_button': UserHandler.send_request_button_params(len(chosen_chats_ids))
+        }
+
+        if max_page_number == 0:
+            kb = view_manager.get_view('one_page_markup', chat_lang,
+                                       markup_params=params)
+        elif current_page == 0:
+            kb = view_manager.get_view('only_right_button_markup', chat_lang,
+                                       markup_params=params)
+        elif current_page == max_page_number:
+            kb = view_manager.get_view('only_left_button_markup', chat_lang,
+                                       markup_params=params)
+        else:
+            kb = view_manager.get_view('request_chats_access_markup', chat_lang,
+                                       markup_params=params)
+
+        return kb
 
     @staticmethod
     def catch_ping(api, view_manager, from_user_id, chat_lang, session):
-
-        if 'chosen_chats_ids' not in session:
-            session['chosen_chats_ids'] = []
+        session['chosen_chats_ids'] = []
 
         message_text = view_manager.get_view('request_chats_access_screen', chat_lang,
                                              screen_params={'total_chats': len(ALL_CHATS)})
-        kb = view_manager.get_view('request_chats_access_markup', chat_lang,
-                                   markup_params=UserHandler.kb_params(session))
+
+        kb = UserHandler.kb_params(session, view_manager, chat_lang)
 
         api.send_message(from_user_id, message_text, reply_markup=kb, parse_mode=ParseMode.html)
 
     @staticmethod
     def request_access(api, view_manager, from_user_id, from_first_name,
                        from_last_name, chat_lang, callback_query, session, user_requests):
-        # TODO: тоже нормально доделать под xml кнопки и тд
+
+        # private_chats = [x for x in ALL_CHATS if x['private']]
+        # user_requests.init_private_chats(private_chats)
+
         chosen_chats = UserHandler.get_chosen_chats(session)
 
         if len(chosen_chats) > 0:
@@ -151,8 +184,7 @@ class UserHandler:
 
         message_text = view_manager.get_view('request_chats_access_screen', chat_lang,
                                              screen_params={'total_chats': len(ALL_CHATS)})
-        kb = view_manager.get_view('request_chats_access_markup', chat_lang,
-                                   markup_params=UserHandler.kb_params(session))
+        kb = UserHandler.kb_params(session, view_manager, chat_lang)
 
         api.edit_message_text(message_text,
                               chat_id=from_user_id,
@@ -177,8 +209,7 @@ class UserHandler:
 
         message_text = view_manager.get_view('request_chats_access_screen', chat_lang,
                                              screen_params={'total_chats': len(ALL_CHATS)})
-        kb = view_manager.get_view('request_chats_access_markup', chat_lang,
-                                   markup_params=UserHandler.kb_params(session))
+        kb = UserHandler.kb_params(session, view_manager, chat_lang)
 
         api.edit_message_text(message_text,
                               chat_id=from_user_id,
@@ -206,8 +237,7 @@ class UserHandler:
 
         message_text = view_manager.get_view('request_chats_access_screen', chat_lang,
                                              screen_params={'total_chats': len(ALL_CHATS)})
-        kb = view_manager.get_view('request_chats_access_markup', chat_lang,
-                                   markup_params=UserHandler.kb_params(session))
+        kb = UserHandler.kb_params(session, view_manager, chat_lang)
 
         api.edit_message_text(message_text,
                               chat_id=from_user_id,

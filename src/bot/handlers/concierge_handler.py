@@ -1,10 +1,15 @@
 import copy
+import time
+from config import SETTINGS
 from handlers.user_handler import DISPLAYED_PAGES
 from botforge.api.consts.telegram_bot import ParseMode
+from botforge.api.objects.telegram_bot import InlineKeyboardMarkup, InlineKeyboardButton
 
 CHATS = []
 username = ''
 USER_ID = 0
+EXPIRE = SETTINGS['bot']['expire_days'] * 24 * 60 * 60
+MEMBER_LIMIT = SETTINGS['bot']['member_limit']
 
 
 class ConciergeHandler:
@@ -52,8 +57,7 @@ class ConciergeHandler:
                         "Запрашиваемые чаты (всего " + str(len(CHATS)) + ")," +
                         "отметтье разрешенные:")
 
-        kb = view_manager.get_view('concierge_chats_markup', chat_lang,
-                                   markup_params=ConciergeHandler.kb_params(session))
+        kb = ConciergeHandler.kb_params(session, view_manager, chat_lang)
 
         api.send_photo(chat_id=from_user_id,
                        photo=profile_pic_id,
@@ -89,15 +93,18 @@ class ConciergeHandler:
         return available_chats_rendered
 
     @staticmethod
-    def button_params(current_page):
-        max_page_number = len(CHATS) // DISPLAYED_PAGES - 1
-        if len(CHATS) % DISPLAYED_PAGES != 0:
-            max_page_number = max_page_number + 1
-
-        return [{'prev_page': str(current_page),
-                 'total': str(max_page_number + 1)},
-                {'next_page': str(current_page + 2),
-                 'total': str(max_page_number + 1)}]
+    def button_params(current_page, max_page_number):
+        if current_page == 0:
+            return [{'next_page': str(current_page + 2),
+                     'total': str(max_page_number + 1)}]
+        elif current_page == max_page_number:
+            return [{'prev_page': str(current_page),
+                     'total': str(max_page_number + 1)}]
+        else:
+            return [{'prev_page': str(current_page),
+                     'total': str(max_page_number + 1)},
+                    {'next_page': str(current_page + 2),
+                     'total': str(max_page_number + 1)}]
 
     @staticmethod
     def send_response_button_params(len_chosen_chats):
@@ -105,13 +112,50 @@ class ConciergeHandler:
                  'total': str(len(CHATS))}]
 
     @staticmethod
-    def kb_params(session):
-        return {
-            'available_chats': ConciergeHandler.render_available_chats(session['chosen_chats_ids'],
-                                                                       session['current_page']),
-            'buttons': ConciergeHandler.button_params(session['current_page']),
-            'response': ConciergeHandler.send_response_button_params(len(session['chosen_chats_ids']))
+    def response_kb_markup(chats):
+        reply_markup = []
+        for chat in chats:
+            reply_markup.append([
+                InlineKeyboardButton(text=chat['title'], url=chat['link'])
+            ])
+
+        return InlineKeyboardMarkup(reply_markup)
+
+    @staticmethod
+    def get_max_page_number():
+        max_page_number = len(CHATS) // DISPLAYED_PAGES - 1
+        if len(CHATS) % DISPLAYED_PAGES != 0:
+            max_page_number = max_page_number + 1
+
+        return max_page_number
+
+    @staticmethod
+    def kb_params(session, view_manager, chat_lang):
+        max_page_number = ConciergeHandler.get_max_page_number()
+        current_page = session['current_page']
+        chosen_chats_ids = session['chosen_chats_ids']
+
+        params = {
+            'available_chats': ConciergeHandler.render_available_chats(chosen_chats_ids,
+                                                                       current_page),
+            'buttons': ConciergeHandler.button_params(current_page, max_page_number),
+            'response': ConciergeHandler.send_response_button_params(len(chosen_chats_ids))
         }
+
+        if max_page_number == 0:
+            kb = view_manager.get_view('concierge_one_page_markup', chat_lang,
+                                       markup_params=params)
+        elif current_page == 0:
+            kb = view_manager.get_view('concierge_only_right_button_markup', chat_lang,
+                                       markup_params=params)
+        elif current_page == max_page_number:
+            kb = view_manager.get_view('concierge_only_left_button_markup', chat_lang,
+                                       markup_params=params)
+        else:
+            kb = view_manager.get_view('concierge_chats_markup', chat_lang,
+                                       markup_params=params)
+
+        return kb
 
     @staticmethod
     def choose_chat(api, view_manager, chat_lang, callback_query, from_user_id, session):
@@ -143,8 +187,7 @@ class ConciergeHandler:
                         "Пользователь: " + username + "\n\n" +
                         "Запрашиваемые чаты (всего " + str(len(CHATS)) + ")," +
                         "отметтье разрешенные:")
-        kb = view_manager.get_view('concierge_chats_markup', chat_lang,
-                                   markup_params=ConciergeHandler.kb_params(session))
+        kb = ConciergeHandler.kb_params(session, view_manager, chat_lang)
 
         api.edit_message_caption(caption=message_text,
                                  chat_id=from_user_id,
@@ -170,8 +213,7 @@ class ConciergeHandler:
                         "Пользователь: " + username + "\n\n" +
                         "Запрашиваемые чаты (всего " + str(len(CHATS)) + ")," +
                         "отметтье разрешенные:")
-        kb = view_manager.get_view('concierge_chats_markup', chat_lang,
-                                   markup_params=ConciergeHandler.kb_params(session))
+        kb = ConciergeHandler.kb_params(session, view_manager, chat_lang)
 
         api.edit_message_caption(caption=message_text,
                                  chat_id=from_user_id,
@@ -200,8 +242,7 @@ class ConciergeHandler:
                         "Пользователь: " + username + "\n\n" +
                         "Запрашиваемые чаты (всего " + str(len(CHATS)) + ")," +
                         "отметтье разрешенные:")
-        kb = view_manager.get_view('concierge_chats_markup', chat_lang,
-                                   markup_params=ConciergeHandler.kb_params(session))
+        kb = ConciergeHandler.kb_params(session, view_manager, chat_lang)
 
         api.edit_message_caption(caption=message_text,
                                  chat_id=from_user_id,
@@ -219,7 +260,7 @@ class ConciergeHandler:
                                             from_user_id, user_requests)
             return
 
-        ConciergeHandler.send_links_to_user(api, approved_chats)
+        ConciergeHandler.send_links_to_user(api, approved_chats, user_requests, session)
 
         message_text = "Пользователь " + username + " получил ответ\nна запрос о вступлении в чаты (доступ в " \
                        + str(len(approved_chats)) + " из " + str(len(CHATS)) + ")"
@@ -229,12 +270,12 @@ class ConciergeHandler:
         kb = view_manager.get_view('concierge_main_menu', chat_lang)
 
         if unreviewed_chats_num - 1 > 0:
-            api.send_message(text=message_text+dope,
+            api.send_message(text=message_text + dope,
                              chat_id=from_user_id,
                              reply_markup=kb,
                              )
         else:
-            api.send_message(text=message_text+zero_requests,
+            api.send_message(text=message_text + zero_requests,
                              chat_id=from_user_id,
                              )
 
@@ -245,9 +286,9 @@ class ConciergeHandler:
         first_user_hash = user_requests.get_users_list()['hashes'][0]
         unreviewed_chats_num = user_requests.get_users_list()['number']
 
-        api.send_message(USER_ID, "Вам отказали")
+        api.send_message(USER_ID, "Запрос на вступление в чаты был отклонен")
 
-        message_text = "Пользователь " + username + " умер\nи не получил доступ ни в один из чатов"
+        message_text = "Пользователь " + username + "не получил\nдоступ ни в один из чатов"
 
         dope = "\n\nУ вас осталось " + str(unreviewed_chats_num) + " необработынных запросов"
 
@@ -261,17 +302,41 @@ class ConciergeHandler:
                              reply_markup=kb,
                              )
         else:
-            api.send_message(text=message_text+zero_requests,
+            api.send_message(text=message_text + zero_requests,
                              chat_id=from_user_id,
                              )
 
         user_requests.delete_request_by_hash(first_user_hash)
 
     @staticmethod
-    def send_links_to_user(api, approved_chats):
-        msg = ""
+    def send_links_to_user(api, approved_chats, user_requests, session):
+        if session['lang'] == 'ru':
+            msg = "Одобрен доступ к " + str(len(approved_chats)) + " чатам из " + str(len(CHATS)) + " запрошенных:\n\n"
+        else:
+            msg = "Approved access to " + str(len(approved_chats)) + " chats out of " + str(
+                len(CHATS)) + " requested:\n\n"
 
+        current_time = int(time.time())
+        chats_to_send = []
         for chat in approved_chats:
-            msg += chat['title'] + " | " + chat['link'] + "\n"
 
-        api.send_message(USER_ID, msg)
+            if chat['private']:
+                user_requests.add_user_id_to_private_chat(USER_ID, chat['chat_id'])
+
+            link = api.create_chat_invite_link(chat_id=chat['chat_id'],
+                                               expire_date=current_time + EXPIRE,
+                                               member_limit=MEMBER_LIMIT)
+            chat['link'] = link
+            chat['chat_id'] = str(chat['chat_id'])
+            chats_to_send.append(chat)
+
+            msg += "  • " + chat['title'] + "\n"
+
+        if session['lang'] == 'ru':
+            msg += "\nДля вступления в чаты используйте кнопки:"
+        else:
+            msg += "\nTo enter chats, use the buttons:"
+
+        api.send_message(chat_id=USER_ID,
+                         text=msg,
+                         reply_markup=ConciergeHandler.response_kb_markup(chats_to_send))

@@ -1,0 +1,11 @@
+<inline-markup id="one_page_markup">
+    <column collection="available_chats">
+        <button id="btn_choose_chat" args="chat_id"/>
+    </column>
+    <row collection="send_request_button">
+        <button id="btn_request_access"/>
+    </row>
+    <row>
+        <button id="btn_main_menu"/>
+    </row>
+</inline-markup>

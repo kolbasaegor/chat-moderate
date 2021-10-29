@@ -1,6 +1,6 @@
 from config import SETTINGS
 from botforge.catcher.match import Any
-from botforge.matches import Command, MarkupButtonClicked
+from botforge.matches import Command, MarkupButtonClicked, NewChatMember
 
 from handlers.user_handler import UserHandler as usr
 from handlers.concierge_handler import ConciergeHandler as con
@@ -9,6 +9,28 @@ CONCIERGE_ID = SETTINGS['bot']['concierge_id']
 
 
 def mount(bot):
+    @bot.catcher.catch(
+        Any(
+            NewChatMember()
+        )
+    )
+    def new_chat_member(api, message, user_requests):
+        user_id = message.new_chat_member.id
+        chat_id = message.chat.id #int
+
+        private_chat_user_ids = user_requests.get_private_chat_user_ids(chat_id)
+
+        # chat is not private
+        if private_chat_user_ids is None:
+            return
+
+        if str(user_id) in private_chat_user_ids:
+            user_requests.remove_user_id_from_private_chat(str(user_id), chat_id)
+            print('OK. User in chat')
+        else:
+            api.kik_chat_member(chat_id, user_id)
+            print('haram user_id')
+
     @bot.catcher.catch(
         Any(
             Command('start')
@@ -86,3 +108,4 @@ def mount(bot):
     )
     def reject_request(api, view_manager, chat_lang, from_user_id, user_requests):
         con.reject_request(api, view_manager, chat_lang, from_user_id, user_requests)
+

@@ -1,17 +1,17 @@
 import copy
+import datetime
+
 from config import SETTINGS
 from botforge.api.consts.telegram_bot import ParseMode
+from from_google_table import get_table
 
-ALL_CHATS = [{'chat_id': -1001478120184, 'title': 'bot test', 'is_chosen': False, 'private': False},
-             {'chat_id': -601226818, 'title': 'test chat', 'is_chosen': False, 'private': False},
-             {'chat_id': -726698144, 'title': 'lolik 🤣', 'is_chosen': False, 'private': True},
-             {'chat_id': -767688267, 'title': 'sinus', 'is_chosen': False, 'private': False},
-             {'chat_id': -795592403, 'title': 'cosinus', 'is_chosen': False, 'private': True},
-             ]
+ALL_CHATS = get_table()
+print('Data from google spreadsheet loaded')
 
 DISPLAYED_PAGES = SETTINGS['bot']['num_of_displayed_pages']
 TOKEN = SETTINGS['bot']['token']
 CONCIERGE_ID = SETTINGS['bot']['concierge_id']
+INTERVAL = SETTINGS['bot']['interval']
 
 
 class UserHandler:
@@ -127,8 +127,13 @@ class UserHandler:
 
         chosen_chats = UserHandler.get_chosen_chats(session)
 
+        if 'last_request_time' in session:
+            if (datetime.datetime.now() - session['last_request_time']).seconds < INTERVAL:
+                api.send_message(from_user_id, "Слишком много запросов. Подождите, пожалуйста")
+                return
+
         if len(chosen_chats) > 0:
-            if from_first_name is not None:
+            if from_last_name is not None:
                 name = from_first_name + " " + from_last_name
             else:
                 name = from_first_name
@@ -137,6 +142,8 @@ class UserHandler:
 
             user_requests.new_request(from_user_id, chat_lang,
                                       name, profile_pic_id, len(chosen_chats), chosen_chats)
+
+            session['last_request_time'] = datetime.datetime.now()
 
             message = callback_query.message
             current_message_id = message.message_id
@@ -193,14 +200,40 @@ class UserHandler:
                               parse_mode=ParseMode.html)
 
     @staticmethod
+    def invert_chats(api, view_manager, chat_lang, callback_query, from_user_id, session):
+        message = callback_query.message
+        current_message_id = message.message_id
+
+        chosen_chats_ids = session['chosen_chats_ids'] if 'chosen_chats_ids' in session else []
+        current_page = session['current_page']
+
+        _from = DISPLAYED_PAGES * current_page
+        _to = _from + DISPLAYED_PAGES if _from + DISPLAYED_PAGES < len(ALL_CHATS) else len(ALL_CHATS)
+
+        for chat in ALL_CHATS[_from:_to]:
+            chat_params = copy.deepcopy(chat)
+            if chat_params['chat_id'] in chosen_chats_ids:
+                chosen_chats_ids.remove(chat_params['chat_id'])
+            else:
+                chosen_chats_ids.append(chat_params['chat_id'])
+
+        session['chosen_chats_ids'] = chosen_chats_ids
+
+        message_text = view_manager.get_view('request_chats_access_screen', chat_lang,
+                                             screen_params={'total_chats': len(ALL_CHATS)})
+        kb = UserHandler.kb_params(session, view_manager, chat_lang)
+
+        api.edit_message_text(message_text,
+                              chat_id=from_user_id,
+                              message_id=current_message_id,
+                              reply_markup=kb,
+                              parse_mode=ParseMode.html)
+
+    @staticmethod
     def prev_chats(api, view_manager, chat_lang, callback_query, from_user_id, session):
         current_page = session['current_page']
 
-        if current_page > 0:
-            current_page = current_page - 1
-        else:
-            # TODO: непустой ответ на дейстиве
-            return
+        current_page = current_page - 1
 
         session['current_page'] = current_page
 
@@ -224,11 +257,7 @@ class UserHandler:
         if len(ALL_CHATS) % DISPLAYED_PAGES != 0:
             max_page_number = max_page_number + 1
 
-        if current_page < max_page_number:
-            current_page = current_page + 1
-        else:
-            # TODO: непустой ответ на дейстиве
-            return
+        current_page = current_page + 1
 
         session['current_page'] = current_page
 

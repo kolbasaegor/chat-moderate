@@ -63,6 +63,14 @@ def mount(bot):
 
     @bot.catcher.catch(
         Any(
+            MarkupButtonClicked('btn_invert_chats')
+        )
+    )
+    def invert_chats(api, view_manager, chat_lang, callback_query, from_user_id, session):
+        usr.invert_chats(api, view_manager, chat_lang, callback_query, from_user_id, session)
+
+    @bot.catcher.catch(
+        Any(
             MarkupButtonClicked('btn_chats_prev')
         )
     )
@@ -106,6 +114,6 @@ def mount(bot):
             MarkupButtonClicked('btn_reject_request')
         )
     )
-    def reject_request(api, view_manager, chat_lang, from_user_id, user_requests):
-        con.reject_request(api, view_manager, chat_lang, from_user_id, user_requests)
+    def reject_request(api, view_manager, chat_lang, from_user_id, user_requests, session):
+        con.reject_request(api, view_manager, chat_lang, from_user_id, user_requests, session)
 

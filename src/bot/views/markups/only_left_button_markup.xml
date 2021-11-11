@@ -2,6 +2,9 @@
     <column collection="available_chats">
         <button id="btn_choose_chat" args="chat_id"/>
     </column>
+    <row>
+        <button id="btn_invert_chats"/>
+    </row>
     <row collection="buttons">
         <button id="btn_chats_prev"/>
     </row>

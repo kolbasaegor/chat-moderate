@@ -1,13 +1,12 @@
 import copy
 import time
+import threading
+
 from config import SETTINGS
 from handlers.user_handler import DISPLAYED_PAGES
 from botforge.api.consts.telegram_bot import ParseMode
 from botforge.api.objects.telegram_bot import InlineKeyboardMarkup, InlineKeyboardButton
 
-CHATS = []
-username = ''
-USER_ID = 0
 EXPIRE = SETTINGS['bot']['expire_days'] * 24 * 60 * 60
 MEMBER_LIMIT = SETTINGS['bot']['member_limit']
 
@@ -34,15 +33,17 @@ class ConciergeHandler:
         if user_requests.get_users_list()['number'] == 0:
             return
 
-        global CHATS, username, USER_ID
         first_user_hash = user_requests.get_users_list()['hashes'][0]
 
         chosen_chats_ids = []
         user = user_requests.get_user_request_by_hash(first_user_hash)
 
-        CHATS = user['chats']
-        username = user['user_name']
-        USER_ID = user['user_id']
+        session['CHATS'] = user['chats']
+        session['USERNAME'] = user['user_name']
+        session['USER_ID'] = user['user_id']
+
+        CHATS = session['CHATS']
+        username = session['USERNAME']
         profile_pic_id = user['profile_pic_id']
 
         session['current_page'] = 0
@@ -67,6 +68,8 @@ class ConciergeHandler:
 
     @staticmethod
     def get_chosen_chats(session):
+        CHATS = session['CHATS']
+
         chosen_chats = []
         chosen_chats_ids = session['chosen_chats_ids']
         for chat in CHATS:
@@ -78,7 +81,8 @@ class ConciergeHandler:
         return chosen_chats
 
     @staticmethod
-    def render_available_chats(chosen_chats_ids, current_page):
+    def render_available_chats(chosen_chats_ids, current_page, session):
+        CHATS = session['CHATS']
         _from = DISPLAYED_PAGES * current_page
         _to = _from + DISPLAYED_PAGES if _from + DISPLAYED_PAGES < len(CHATS) else len(CHATS)
 
@@ -107,7 +111,8 @@ class ConciergeHandler:
                      'total': str(max_page_number + 1)}]
 
     @staticmethod
-    def send_response_button_params(len_chosen_chats):
+    def send_response_button_params(len_chosen_chats, session):
+        CHATS = session['CHATS']
         return [{'chats_chosen': str(len_chosen_chats),
                  'total': str(len(CHATS))}]
 
@@ -122,7 +127,8 @@ class ConciergeHandler:
         return InlineKeyboardMarkup(reply_markup)
 
     @staticmethod
-    def get_max_page_number():
+    def get_max_page_number(session):
+        CHATS = session['CHATS']
         max_page_number = len(CHATS) // DISPLAYED_PAGES - 1
         if len(CHATS) % DISPLAYED_PAGES != 0:
             max_page_number = max_page_number + 1
@@ -131,15 +137,15 @@ class ConciergeHandler:
 
     @staticmethod
     def kb_params(session, view_manager, chat_lang):
-        max_page_number = ConciergeHandler.get_max_page_number()
+        max_page_number = ConciergeHandler.get_max_page_number(session)
         current_page = session['current_page']
         chosen_chats_ids = session['chosen_chats_ids']
 
         params = {
             'available_chats': ConciergeHandler.render_available_chats(chosen_chats_ids,
-                                                                       current_page),
+                                                                       current_page, session),
             'buttons': ConciergeHandler.button_params(current_page, max_page_number),
-            'response': ConciergeHandler.send_response_button_params(len(chosen_chats_ids))
+            'response': ConciergeHandler.send_response_button_params(len(chosen_chats_ids), session)
         }
 
         if max_page_number == 0:
@@ -174,6 +180,9 @@ class ConciergeHandler:
 
         chat_id = int(params[0])
 
+        CHATS = session['CHATS']
+        username = session['USERNAME']
+
         chosen_chats_ids = session['chosen_chats_ids'] if 'chosen_chats_ids' in session else []
 
         if chat_id in chosen_chats_ids:
@@ -198,16 +207,15 @@ class ConciergeHandler:
     def prev_chats(api, view_manager, chat_lang, callback_query, from_user_id, session):
         current_page = session['current_page']
 
-        if current_page > 0:
-            current_page = current_page - 1
-        else:
-            # TODO: непустой ответ на дейстиве
-            return
+        current_page = current_page - 1
 
         session['current_page'] = current_page
 
         message = callback_query.message
         current_message_id = message.message_id
+
+        CHATS = session['CHATS']
+        username = session['USERNAME']
 
         message_text = ("Новый запрос на доступ в чаты:\n\n" +
                         "Пользователь: " + username + "\n\n" +
@@ -223,15 +231,13 @@ class ConciergeHandler:
     @staticmethod
     def next_chats(api, view_manager, chat_lang, callback_query, from_user_id, session):
         current_page = session['current_page']
+        CHATS = session['CHATS']
+        username = session['USERNAME']
         max_page_number = len(CHATS) // DISPLAYED_PAGES - 1
         if len(CHATS) % DISPLAYED_PAGES != 0:
             max_page_number = max_page_number + 1
 
-        if current_page < max_page_number:
-            current_page = current_page + 1
-        else:
-            # TODO: непустой ответ на дейстиве
-            return
+        current_page = current_page + 1
 
         session['current_page'] = current_page
 
@@ -257,10 +263,13 @@ class ConciergeHandler:
 
         if len(approved_chats) == 0:
             ConciergeHandler.reject_request(api, view_manager, chat_lang,
-                                            from_user_id, user_requests)
+                                            from_user_id, user_requests, session)
             return
 
         ConciergeHandler.send_links_to_user(api, approved_chats, user_requests, session)
+
+        CHATS = session['CHATS']
+        username = session['USERNAME']
 
         message_text = "Пользователь " + username + " получил ответ\nна запрос о вступлении в чаты (доступ в " \
                        + str(len(approved_chats)) + " из " + str(len(CHATS)) + ")"
@@ -282,9 +291,12 @@ class ConciergeHandler:
         user_requests.delete_request_by_hash(first_user_hash)
 
     @staticmethod
-    def reject_request(api, view_manager, chat_lang, from_user_id, user_requests):
+    def reject_request(api, view_manager, chat_lang, from_user_id, user_requests, session):
         first_user_hash = user_requests.get_users_list()['hashes'][0]
         unreviewed_chats_num = user_requests.get_users_list()['number']
+
+        username = session['USERNAME']
+        USER_ID = session['USER_ID']
 
         api.send_message(USER_ID, "Запрос на вступление в чаты был отклонен")
 
@@ -310,33 +322,50 @@ class ConciergeHandler:
 
     @staticmethod
     def send_links_to_user(api, approved_chats, user_requests, session):
-        if session['lang'] == 'ru':
-            msg = "Одобрен доступ к " + str(len(approved_chats)) + " чатам из " + str(len(CHATS)) + " запрошенных:\n\n"
+        thread = LinkCreator(api, approved_chats, user_requests, session)
+        thread.start()
+
+
+class LinkCreator(threading.Thread):
+    def __init__(self, api, approved_chats, user_requests, session):
+        threading.Thread.__init__(self)
+        self.api = api
+        self.approved_chats = approved_chats
+        self.user_requests = user_requests
+        self.session = session
+
+    def run(self):
+        CHATS = self.session['CHATS']
+        USER_ID = self.session['USER_ID']
+
+        if self.session['lang'] == 'ru':
+            msg = "Одобрен доступ к " + str(len(self.approved_chats)) + " чатам из " + str(
+                len(CHATS)) + " запрошенных:\n\n"
         else:
-            msg = "Approved access to " + str(len(approved_chats)) + " chats out of " + str(
+            msg = "Approved access to " + str(len(self.approved_chats)) + " chats out of " + str(
                 len(CHATS)) + " requested:\n\n"
 
         current_time = int(time.time())
         chats_to_send = []
-        for chat in approved_chats:
+        for chat in self.approved_chats:
 
             if chat['private']:
-                user_requests.add_user_id_to_private_chat(USER_ID, chat['chat_id'])
+                self.user_requests.add_user_id_to_private_chat(USER_ID, chat['chat_id'])
 
-            link = api.create_chat_invite_link(chat_id=chat['chat_id'],
-                                               expire_date=current_time + EXPIRE,
-                                               member_limit=MEMBER_LIMIT)
+            link = self.api.create_chat_invite_link(chat_id=chat['chat_id'],
+                                                    expire_date=current_time + EXPIRE,
+                                                    member_limit=MEMBER_LIMIT)
             chat['link'] = link
             chat['chat_id'] = str(chat['chat_id'])
             chats_to_send.append(chat)
 
             msg += "  • " + chat['title'] + "\n"
 
-        if session['lang'] == 'ru':
+        if self.session['lang'] == 'ru':
             msg += "\nДля вступления в чаты используйте кнопки:"
         else:
             msg += "\nTo enter chats, use the buttons:"
 
-        api.send_message(chat_id=USER_ID,
-                         text=msg,
-                         reply_markup=ConciergeHandler.response_kb_markup(chats_to_send))
+        self.api.send_message(chat_id=USER_ID,
+                              text=msg,
+                              reply_markup=ConciergeHandler.response_kb_markup(chats_to_send))

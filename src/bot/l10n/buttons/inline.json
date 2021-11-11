@@ -7,6 +7,10 @@
     "en": "{title}",
     "ru": "{title}"
   },
+  "btn_invert_chats": {
+    "en": "invert chats",
+    "ru": "инвертировать пространство"
+  },
   "btn_chats_prev": {
     "en": "< prev. page ({prev_page}/{total})",
     "ru": "< назад ({prev_page}/{total})"

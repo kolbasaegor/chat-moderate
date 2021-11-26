@@ -3,18 +3,34 @@ import datetime
 
 from config import SETTINGS
 from botforge.api.consts.telegram_bot import ParseMode
-from from_google_table import get_table
+import from_google_table
 
-ALL_CHATS = get_table()
-print('Data from google spreadsheet loaded')
+ALL_CHATS = from_google_table.get_table()
+LAST_UPDATE = datetime.datetime.now()
 
 DISPLAYED_PAGES = SETTINGS['bot']['num_of_displayed_pages']
 TOKEN = SETTINGS['bot']['token']
 CONCIERGE_ID = SETTINGS['bot']['concierge_id']
 INTERVAL = SETTINGS['bot']['interval']
+UPDATE_TIME = SETTINGS['google']['update_time']
 
 
 class UserHandler:
+    @staticmethod
+    def update_chats(api, user_requests):
+        global ALL_CHATS
+
+        chats_from_google_table = from_google_table.get_table()
+        if chats_from_google_table:
+            ALL_CHATS = chats_from_google_table
+            private_chats = [x for x in ALL_CHATS if x['private']]
+            user_requests.init_private_chats(private_chats)
+            api.send_message(chat_id=CONCIERGE_ID,
+                             text='Чаты успешно обновлены')
+        else:
+            api.send_message(chat_id=CONCIERGE_ID,
+                             text='Что-то пошло не так при загрузке чатов из таблицы.')
+
     @staticmethod
     def get_profile_pic_id(api, user_id):
         user_profile = api.get_user_profile_photos(user_id)
@@ -108,7 +124,12 @@ class UserHandler:
         return kb
 
     @staticmethod
-    def catch_ping(api, view_manager, from_user_id, chat_lang, session):
+    def catch_ping(api, view_manager, from_user_id, chat_lang, session, user_requests):
+        global LAST_UPDATE
+        if (datetime.datetime.now() - LAST_UPDATE).seconds > UPDATE_TIME:
+            UserHandler.update_chats(api, user_requests)
+            LAST_UPDATE = datetime.datetime.now()
+
         session['chosen_chats_ids'] = []
 
         message_text = view_manager.get_view('request_chats_access_screen', chat_lang,
@@ -122,14 +143,15 @@ class UserHandler:
     def request_access(api, view_manager, from_user_id, from_first_name,
                        from_last_name, chat_lang, callback_query, session, user_requests):
 
-        # private_chats = [x for x in ALL_CHATS if x['private']]
-        # user_requests.init_private_chats(private_chats)
-
         chosen_chats = UserHandler.get_chosen_chats(session)
 
         if 'last_request_time' in session:
             if (datetime.datetime.now() - session['last_request_time']).seconds < INTERVAL:
-                api.send_message(from_user_id, "Слишком много запросов. Подождите, пожалуйста")
+                if session['lang'] == 'ru':
+                    msg = "Слишком много запросов. Подождите, пожалуйста"
+                else:
+                    msg = "Too many requests. Please wait"
+                api.send_message(from_user_id, msg)
                 return
 
         if len(chosen_chats) > 0:
@@ -253,9 +275,6 @@ class UserHandler:
     @staticmethod
     def next_chats(api, view_manager, chat_lang, callback_query, from_user_id, session):
         current_page = session['current_page']
-        max_page_number = len(ALL_CHATS) // DISPLAYED_PAGES - 1
-        if len(ALL_CHATS) % DISPLAYED_PAGES != 0:
-            max_page_number = max_page_number + 1
 
         current_page = current_page + 1
 

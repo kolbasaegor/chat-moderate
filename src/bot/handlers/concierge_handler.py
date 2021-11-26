@@ -15,14 +15,14 @@ class ConciergeHandler:
 
     @staticmethod
     def catch_ping(api, view_manager, from_user_id, chat_lang, user_requests):
-        unreviewed_chats_num = user_requests.get_users_list()['number']
+        unreviewed_chats_num = len(user_requests.get_users_list()['hashes'])
 
         if unreviewed_chats_num == 0:
-            message_text = "Нет новых запросов"
+            message_text = "Нет новых запросов на вступление в чаты"
             api.send_message(from_user_id, message_text)
             return
 
-        message_text = "У вас " + str(unreviewed_chats_num) + " необработынных запросов"
+        message_text = "У вас " + str(unreviewed_chats_num) + " необработанных запросов на вступление в чаты"
         kb = view_manager.get_view('concierge_main_menu', chat_lang,
                                    )
 
@@ -30,7 +30,7 @@ class ConciergeHandler:
 
     @staticmethod
     def show_first_request(api, view_manager, from_user_id, chat_lang, user_requests, session):
-        if user_requests.get_users_list()['number'] == 0:
+        if len(user_requests.get_users_list()['hashes']) == 0:
             return
 
         first_user_hash = user_requests.get_users_list()['hashes'][0]
@@ -233,9 +233,6 @@ class ConciergeHandler:
         current_page = session['current_page']
         CHATS = session['CHATS']
         username = session['USERNAME']
-        max_page_number = len(CHATS) // DISPLAYED_PAGES - 1
-        if len(CHATS) % DISPLAYED_PAGES != 0:
-            max_page_number = max_page_number + 1
 
         current_page = current_page + 1
 
@@ -259,7 +256,7 @@ class ConciergeHandler:
     def send_response(api, view_manager, chat_lang, from_user_id, session, user_requests):
         first_user_hash = user_requests.get_users_list()['hashes'][0]
         approved_chats = ConciergeHandler.get_chosen_chats(session)
-        unreviewed_chats_num = user_requests.get_users_list()['number']
+        unreviewed_chats_num = len(user_requests.get_users_list()['hashes'])
 
         if len(approved_chats) == 0:
             ConciergeHandler.reject_request(api, view_manager, chat_lang,
@@ -293,7 +290,7 @@ class ConciergeHandler:
     @staticmethod
     def reject_request(api, view_manager, chat_lang, from_user_id, user_requests, session):
         first_user_hash = user_requests.get_users_list()['hashes'][0]
-        unreviewed_chats_num = user_requests.get_users_list()['number']
+        unreviewed_chats_num = len(user_requests.get_users_list()['hashes'])
 
         username = session['USERNAME']
         USER_ID = session['USER_ID']
@@ -348,18 +345,19 @@ class LinkCreator(threading.Thread):
         current_time = int(time.time())
         chats_to_send = []
         for chat in self.approved_chats:
-
+            time.sleep(SETTINGS['bot']['delay'])
             if chat['private']:
                 self.user_requests.add_user_id_to_private_chat(USER_ID, chat['chat_id'])
 
             link = self.api.create_chat_invite_link(chat_id=chat['chat_id'],
                                                     expire_date=current_time + EXPIRE,
                                                     member_limit=MEMBER_LIMIT)
-            chat['link'] = link
-            chat['chat_id'] = str(chat['chat_id'])
-            chats_to_send.append(chat)
+            if link is not None:
+                chat['link'] = link
+                chat['chat_id'] = str(chat['chat_id'])
+                chats_to_send.append(chat)
 
-            msg += "  • " + chat['title'] + "\n"
+                msg += "  • " + chat['title'] + "\n"
 
         if self.session['lang'] == 'ru':
             msg += "\nДля вступления в чаты используйте кнопки:"

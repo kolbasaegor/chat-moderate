@@ -21,10 +21,15 @@ SETTINGS = {
         'expire_days': 1,
         'member_limit': 1,
         # interval in seconds
-        'interval': 60
+        'interval': 60,
+        'delay': 1,
+        'password_for_update': 'b3br4'
     },
     'google': {
         'gmail': 'botik-chat@chat-control-bot.iam.gserviceaccount.com',
-        'table_name': 'Chats'
+        'table_name': 'Chats',
+        'worksheet_name': 'Лист1',
+        # update_time in seconds
+        'update_time': 3600
     }
 }

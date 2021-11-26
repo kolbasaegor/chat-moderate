@@ -8,16 +8,16 @@
     "ru": "{title}"
   },
   "btn_invert_chats": {
-    "en": "invert chats",
-    "ru": "инвертировать пространство"
+    "en": "Invert chat selection",
+    "ru": "Инвертировать выбор чатов"
   },
   "btn_chats_prev": {
-    "en": "< prev. page ({prev_page}/{total})",
-    "ru": "< назад ({prev_page}/{total})"
+    "en": "⬅ prev. page ({prev_page}/{total})",
+    "ru": "⬅ назад ({prev_page}/{total})"
   },
   "btn_chats_next": {
-    "en": "next page ({next_page}/{total}) > ",
-    "ru": "вперед ({next_page}/{total}) >"
+    "en": "next page ({next_page}/{total}) ➡",
+    "ru": "вперед ({next_page}/{total}) ➡"
   },
   "btn_main_menu": {
     "en": "Main menu",
@@ -28,12 +28,12 @@
     "ru": "Запросить доступ к чатам ({chats_chosen} из {total})"
   },
   "btn_send_response": {
-    "en": "Allow access to chats ({chats_chosen} from {total})",
-    "ru": "Разрешить доступ к чатам ({chats_chosen} из {total})"
+    "en": "⬇ Allow access to chats ({chats_chosen} from {total})",
+    "ru": "⬇ Разрешить доступ к чатам ({chats_chosen} из {total})"
   },
   "btn_reject_request": {
-    "en": "Reject request",
-    "ru": "Отклонить запрос"
+    "en": "⛔ Reject request",
+    "ru": "⛔ Отклонить запрос"
   },
   "btn_show_first_request": {
     "en": "Show unreviewed request",

@@ -32,6 +32,9 @@ class UserQManager(object):
         self._db = client.get_database(config['db']['name'])
         self.users_collection = self._db.get_collection(UserQManager.USERS_Q_COLLECTION)
         self.users_ids = self._db.get_collection(UserQManager.IDS)
+        if self.users_ids.find_one({'name': 'user_ids'}) is None:
+            self.users_ids.insert_one({'name': 'user_ids',
+                                       'hashes': []})
         self.private_chats = self._db.get_collection(UserQManager.PRIVATE_CHATS)
 
     def new_request(self, user_id, lang, user_name, profile_pic_id, number_of_chats, chats):
@@ -44,11 +47,11 @@ class UserQManager(object):
         self.users_collection.insert_one(new_request)
 
         users_ids_collection = self.users_ids.find_one({'name': 'user_ids'})
-        number = users_ids_collection['number'] + 1
+        # number = users_ids_collection['number'] + 1
         hashes_copy = users_ids_collection['hashes']
         hashes_copy.append(_hash)
 
-        self.users_ids.update_one({'name': 'user_ids'}, {"$set": {'number': number, 'hashes': hashes_copy}})
+        self.users_ids.update_one({'name': 'user_ids'}, {"$set": {'hashes': hashes_copy}})
 
     def get_user_request_by_hash(self, _hash):
         return self.users_collection.find_one({'hash': _hash})
@@ -58,39 +61,39 @@ class UserQManager(object):
 
     def delete_request_by_hash(self, _hash):
         users_ids_collection = self.users_ids.find_one({'name': 'user_ids'})
-        number = users_ids_collection['number'] - 1
+        # number = users_ids_collection['number'] - 1
         hashes_copy = users_ids_collection['hashes']
         hashes_copy.remove(_hash)
 
-        self.users_ids.update_one({'name': 'user_ids'}, {"$set": {'number': number, 'hashes': hashes_copy}})
+        self.users_ids.update_one({'name': 'user_ids'}, {"$set": {'hashes': hashes_copy}})
         self.users_collection.delete_one({'hash': _hash})
 
     def init_private_chats(self, chats):
+        self.private_chats.drop()
         for chat in chats:
-            if self.private_chats.find_one({'chat_id': chat['chat_id']}) is None:
-                self.private_chats.insert_one({'chat_id': chat['chat_id'],
-                                               'chat_title': chat['title'],
-                                               'user_ids': []})
+            self.private_chats.insert_one({'chat_id': chat['chat_id'],
+                                           'chat_title': chat['title'],
+                                           'user_ids': []})
 
     def add_user_id_to_private_chat(self, user_id, chat_id):
         ids = self.private_chats.find_one({'chat_id': chat_id})['user_ids']
         if user_id not in ids:
             ids.append(user_id)
 
-        self.private_chats.update_one({'chat_id': chat_id}, {"$set": {'user_ids': ids}})
+        self.private_chats.update_one({'chat_id': chat_id}, {"$push": {'user_ids': ids}})
 
     def remove_user_id_from_private_chat(self, user_id, chat_id):
         ids = self.private_chats.find_one({'chat_id': chat_id})['user_ids']
         if user_id in ids:
             ids.remove(user_id)
 
-        self.private_chats.update_one({'chat_id': chat_id}, {"$set": {'user_ids': ids}})
+        self.private_chats.update_one({'chat_id': chat_id}, {"$pull": {'user_ids': ids}})
 
     def get_private_chat_user_ids(self, chat_id):
         result = self.private_chats.find_one({'chat_id': chat_id})
 
         if result is not None:
-            return self.private_chats.find_one({'chat_id': chat_id})['user_ids']
+            return result
         else:
             return None
 

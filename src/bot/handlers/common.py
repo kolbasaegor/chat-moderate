@@ -33,6 +33,15 @@ def mount(bot):
 
     @bot.catcher.catch(
         Any(
+            Command(SETTINGS['bot']['password_for_update'])
+        )
+    )
+    def update_chats(api, from_user_id, user_requests):
+        if from_user_id == CONCIERGE_ID:
+            usr.update_chats(api, user_requests)
+
+    @bot.catcher.catch(
+        Any(
             Command('start')
         )
     )
@@ -40,7 +49,7 @@ def mount(bot):
         if from_user_id == CONCIERGE_ID:
             con.catch_ping(api, view_manager, from_user_id, chat_lang, user_requests)
         else:
-            usr.catch_ping(api, view_manager, from_user_id, chat_lang, session)
+            usr.catch_ping(api, view_manager, from_user_id, chat_lang, session, user_requests)
 
     @bot.catcher.catch(
         Any(
@@ -107,7 +116,8 @@ def mount(bot):
         )
     )
     def send_response(api, view_manager, chat_lang, from_user_id, session, user_requests):
-        con.send_response(api, view_manager, chat_lang, from_user_id, session, user_requests)
+        if from_user_id == CONCIERGE_ID:
+            con.send_response(api, view_manager, chat_lang, from_user_id, session, user_requests)
 
     @bot.catcher.catch(
         Any(
@@ -115,5 +125,6 @@ def mount(bot):
         )
     )
     def reject_request(api, view_manager, chat_lang, from_user_id, user_requests, session):
-        con.reject_request(api, view_manager, chat_lang, from_user_id, user_requests, session)
+        if from_user_id == CONCIERGE_ID:
+            con.reject_request(api, view_manager, chat_lang, from_user_id, user_requests, session)
 

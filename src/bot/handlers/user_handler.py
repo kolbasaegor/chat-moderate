@@ -6,7 +6,7 @@ from botforge.api.consts.telegram_bot import ParseMode
 import from_google_table
 
 ALL_CHATS = from_google_table.get_table()
-LAST_UPDATE = datetime.datetime.now()
+LAST_UPDATE = datetime.datetime(1970, 1, 1, 1, 1, 1)
 
 DISPLAYED_PAGES = SETTINGS['bot']['num_of_displayed_pages']
 TOKEN = SETTINGS['bot']['token']

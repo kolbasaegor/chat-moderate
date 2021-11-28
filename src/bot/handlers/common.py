@@ -18,13 +18,13 @@ def mount(bot):
         user_id = message.new_chat_member.id
         chat_id = message.chat.id #int
 
-        private_chat_user_ids = user_requests.get_private_chat_user_ids(chat_id)
+        private_chat = user_requests.get_private_chat_user_ids(chat_id)
 
         # chat is not private
-        if private_chat_user_ids is None:
+        if private_chat is None:
             return
 
-        if str(user_id) in private_chat_user_ids:
+        if str(user_id) in private_chat['user_ids']:
             user_requests.remove_user_id_from_private_chat(str(user_id), chat_id)
             print('OK. User in chat')
         else:

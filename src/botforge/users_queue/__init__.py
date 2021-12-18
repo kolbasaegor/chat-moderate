@@ -58,12 +58,14 @@ class UserQManager(object):
         self.users_collection.delete_one({'hash': _hash})
 
     def init_private_chats(self, chats):
-        # self.private_chats.drop()
-        self.private_chats.remove()
         for chat in chats:
-            self.private_chats.insert_one({'chat_id': chat['chat_id'],
-                                           'chat_title': chat['title'],
-                                           'user_ids': []})
+            if chat['private']:
+                if self.private_chats.find_one({'chat_id': chat['chat_id']}) is None:
+                    self.private_chats.insert_one({'chat_id': chat['chat_id'],
+                                                   'chat_title': chat['title'],
+                                                   'user_ids': []})
+            else:
+                self.private_chats.delete_one({'chat_id': chat['chat_id']})
 
     def add_user_id_to_private_chat(self, user_id, chat_id):
         self.private_chats.update_one({'chat_id': chat_id}, {"$push": {'user_ids': user_id}})

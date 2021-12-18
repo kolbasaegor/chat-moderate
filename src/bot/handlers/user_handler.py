@@ -23,8 +23,7 @@ class UserHandler:
         chats_from_google_table = from_google_table.get_table()
         if chats_from_google_table:
             ALL_CHATS = chats_from_google_table
-            private_chats = [x for x in ALL_CHATS if x['private']]
-            user_requests.init_private_chats(private_chats)
+            user_requests.init_private_chats(ALL_CHATS)
             api.send_message(chat_id=CONCIERGE_ID,
                              text='Чаты успешно обновлены')
         else:

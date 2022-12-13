@@ -128,7 +128,6 @@ class Bot(object):
 
     @staticmethod
     def _load_modules():
-        # TODO: parse dependencies from "./package.json"
         module_authors = get_directories_names(Bot.path_modules)
         modules = dict()
 
@@ -156,7 +155,6 @@ class Bot(object):
 
                     modules[versioned_module_path] = ModuleManager.load_module(abs_module_path)
 
-        # TODO: make sure modules dependencies are satisfied
 
         return modules
 
@@ -171,8 +169,6 @@ class Bot(object):
         self._preset_argument_resolvers[name] = resolver
 
     def get_argument_resolvers(self, update):
-        # TODO: pull argument provider out of arguments dict
-        # TODO: make all possible properties lazy?(overwrite __call__ ?)
         argument_resolvers = {'update': update,
                               'message': update.message,
                               'inline_query': update.inline_query,

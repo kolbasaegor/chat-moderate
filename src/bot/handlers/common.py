@@ -53,6 +53,17 @@ def mount(bot):
 
     @bot.catcher.catch(
         Any(
+            Command('switch_lang')
+        )
+    )
+    def switch_lang(from_user_id, session):
+        if from_user_id == CONCIERGE_ID:
+            con.switch_lang(session)
+        else:
+            usr.switch_lang(session)
+
+    @bot.catcher.catch(
+        Any(
             MarkupButtonClicked('btn_show_first_request')
         )
     )

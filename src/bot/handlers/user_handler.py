@@ -17,6 +17,13 @@ UPDATE_TIME = SETTINGS['google']['update_time']
 
 class UserHandler:
     @staticmethod
+    def switch_lang(session):
+        if session['lang'] == 'en':
+            session['lang'] = 'ru'
+        else:
+            session['lang'] = 'en'
+
+    @staticmethod
     def update_chats(api, user_requests):
         global ALL_CHATS
 
@@ -25,10 +32,10 @@ class UserHandler:
             ALL_CHATS = chats_from_google_table
             user_requests.init_private_chats(ALL_CHATS)
             api.send_message(chat_id=CONCIERGE_ID,
-                             text='Чаты успешно обновлены')
+                             text='Chats updated successfully')
         else:
             api.send_message(chat_id=CONCIERGE_ID,
-                             text='Что-то пошло не так при загрузке чатов из таблицы.')
+                             text='Something went wrong while loading chats from the spreadsheet.')
 
     @staticmethod
     def get_profile_pic_id(api, user_id):
@@ -175,14 +182,14 @@ class UserHandler:
                                   message_id=current_message_id,
                                   parse_mode=ParseMode.html)
 
-            message = "Новый запрос на вступление в чаты"
+            message = "New request to join chats"
             kb = view_manager.get_view('concierge_main_menu', chat_lang)
             api.send_message(chat_id=CONCIERGE_ID,
                              text=message,
                              reply_markup=kb)
 
         else:
-            api.send_message(from_user_id, "Вы не выбрали ни одного чата!")
+            api.send_message(from_user_id, "You have not selected any chat!")
 
     @staticmethod
     def choose_chat(api, view_manager, chat_lang, callback_query, from_user_id, session):

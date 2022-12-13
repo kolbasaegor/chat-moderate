@@ -12,17 +12,23 @@ MEMBER_LIMIT = SETTINGS['bot']['member_limit']
 
 
 class ConciergeHandler:
+    @staticmethod
+    def switch_lang(session):
+        if session['lang'] == 'en':
+            session['lang'] = 'ru'
+        else:
+            session['lang'] = 'en'
 
     @staticmethod
     def catch_ping(api, view_manager, from_user_id, chat_lang, user_requests):
         unreviewed_chats_num = len(user_requests.get_users_list()['hashes'])
 
         if unreviewed_chats_num == 0:
-            message_text = "Нет новых запросов на вступление в чаты"
+            message_text = "No new chat requests"
             api.send_message(from_user_id, message_text)
             return
 
-        message_text = "У вас " + str(unreviewed_chats_num) + " необработанных запросов на вступление в чаты"
+        message_text = "You have " + str(unreviewed_chats_num) + " pending requests to join chats"
         kb = view_manager.get_view('concierge_main_menu', chat_lang,
                                    )
 
@@ -53,10 +59,10 @@ class ConciergeHandler:
                 chosen_chats_ids.append(chat['chat_id'])
         session['chosen_chats_ids'] = chosen_chats_ids
 
-        message_text = ("Новый запрос на доступ в чаты:\n\n" +
-                        "Пользователь: " + username + "\n\n" +
-                        "Запрашиваемые чаты (всего " + str(len(CHATS)) + ")," +
-                        "отметтье разрешенные:")
+        message_text = ("New request to access chats:\n\n" +
+                        "User: " + username + "\n\n" +
+                        "Requested chats (Total " + str(len(CHATS)) + ")," +
+                        "Check allowed:")
 
         kb = ConciergeHandler.kb_params(session, view_manager, chat_lang)
 
@@ -192,10 +198,10 @@ class ConciergeHandler:
 
         session['chosen_chats_ids'] = chosen_chats_ids
 
-        message_text = ("Новый запрос на доступ в чаты:\n\n" +
-                        "Пользователь: " + username + "\n\n" +
-                        "Запрашиваемые чаты (всего " + str(len(CHATS)) + ")," +
-                        "отметтье разрешенные:")
+        message_text = ("New request to access chats:\n\n" +
+                        "User: " + username + "\n\n" +
+                        "Requested chats (Total " + str(len(CHATS)) + ")," +
+                        "Check allowed:")
         kb = ConciergeHandler.kb_params(session, view_manager, chat_lang)
 
         api.edit_message_caption(caption=message_text,
@@ -217,10 +223,10 @@ class ConciergeHandler:
         CHATS = session['CHATS']
         username = session['USERNAME']
 
-        message_text = ("Новый запрос на доступ в чаты:\n\n" +
-                        "Пользователь: " + username + "\n\n" +
-                        "Запрашиваемые чаты (всего " + str(len(CHATS)) + ")," +
-                        "отметтье разрешенные:")
+        message_text = ("New request to access chats:\n\n" +
+                        "User: " + username + "\n\n" +
+                        "Requested chats (Total " + str(len(CHATS)) + ")," +
+                        "Check allowed:")
         kb = ConciergeHandler.kb_params(session, view_manager, chat_lang)
 
         api.edit_message_caption(caption=message_text,
@@ -241,10 +247,10 @@ class ConciergeHandler:
         message = callback_query.message
         current_message_id = message.message_id
 
-        message_text = ("Новый запрос на доступ в чаты:\n\n" +
-                        "Пользователь: " + username + "\n\n" +
-                        "Запрашиваемые чаты (всего " + str(len(CHATS)) + ")," +
-                        "отметтье разрешенные:")
+        message_text = ("New request to access chats:\n\n" +
+                        "User: " + username + "\n\n" +
+                        "Requested chats (Total " + str(len(CHATS)) + ")," +
+                        "Check allowed:")
         kb = ConciergeHandler.kb_params(session, view_manager, chat_lang)
 
         api.edit_message_caption(caption=message_text,
@@ -268,10 +274,10 @@ class ConciergeHandler:
         CHATS = session['CHATS']
         username = session['USERNAME']
 
-        message_text = "Пользователь " + username + " получил ответ\nна запрос о вступлении в чаты (доступ в " \
+        message_text = "User " + username + " received a response\nto a request to join chats (access in " \
                        + str(len(approved_chats)) + " из " + str(len(CHATS)) + ")"
-        dope = "\n\nУ вас осталось " + str(unreviewed_chats_num) + " необработынных запросов"
-        zero_requests = "\n\nНовых запросов нет :)"
+        dope = "\n\nYou have left " + str(unreviewed_chats_num) + " pending requests"
+        zero_requests = "\n\nNo new requests :)"
 
         kb = view_manager.get_view('concierge_main_menu', chat_lang)
 
@@ -295,13 +301,13 @@ class ConciergeHandler:
         username = session['USERNAME']
         USER_ID = session['USER_ID']
 
-        api.send_message(USER_ID, "Запрос на вступление в чаты был отклонен")
+        api.send_message(USER_ID, "Your request to join chats has been denied")
 
-        message_text = "Пользователь " + username + "не получил\nдоступ ни в один из чатов"
+        message_text = "User " + username + "did not\naccess any of the chats"
 
-        dope = "\n\nУ вас осталось " + str(unreviewed_chats_num) + " необработынных запросов"
+        dope = "\n\nYou have left " + str(unreviewed_chats_num) + " pending requests"
 
-        zero_requests = "\n\nНовых запросов нет :)"
+        zero_requests = "\n\nNo new requests :)"
 
         kb = view_manager.get_view('concierge_main_menu', chat_lang)
 

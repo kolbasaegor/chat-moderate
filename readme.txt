@@ -1,4 +1,0 @@
-sample text
-bottom text
-:))
-
